@@ -35,8 +35,10 @@ export function FileCard({ file, isSelected = false, onToggleSelect }: FileCardP
   };
 
   const handlePlay = () => {
-    // 動画や音声の場合は新しいタブで開く
-    window.open(file.link, '_blank');
+    setShowDialog(true);
+    setIsPlaying(true);
+    setIsLoading(true);
+    setLoadError(null);
   };
 
   const handlePreviewImage = () => {
@@ -254,8 +256,8 @@ export function FileCard({ file, isSelected = false, onToggleSelect }: FileCardP
                 variant="secondary"
                 className="flex-1"
               >
-                開く
-                <ExternalLink className="ml-2 h-4 w-4" />
+                再生
+                <Play className="ml-2 h-4 w-4" />
               </Button>
             )}
             <Button 
@@ -264,8 +266,8 @@ export function FileCard({ file, isSelected = false, onToggleSelect }: FileCardP
               className={canPlay ? "flex-1" : "w-full"}
               variant="default"
             >
-              {isDownloading ? "開いています..." : "開く"}
-              {!isDownloading && <ExternalLink className="ml-2 h-4 w-4" />}
+              {isDownloading ? "ダウンロード中..." : "ダウンロード"}
+              {!isDownloading && <Download className="ml-2 h-4 w-4" />}
             </Button>
           </CardFooter>
         </Card>
