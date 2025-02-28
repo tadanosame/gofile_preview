@@ -8,10 +8,18 @@ export async function fetchGofileData(url: string, password?: string): Promise<G
       throw new Error('Invalid Gofile URL');
     }
 
+    // Fetch the authorization token from Cloudflare KV
+    const tokenResponse = await fetch('/api/token');
+    if (!tokenResponse.ok) {
+      throw new Error('Failed to fetch authorization token');
+    }
+    const { token } = await tokenResponse.json();
+
     // Fetch the data from Gofile API
-    const apiUrl = `https://api.gofile.io/contents/${contentId}`;
+    const apiUrl = `https://api.gofile.io/contents/${contentId}?wt=4fd6sg89d7s6`;
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
     };
 
     const options: RequestInit = {
@@ -88,19 +96,15 @@ export function formatFileSize(bytes: number): string {
 
 export async function downloadFile(url: string, filename: string): Promise<void> {
   try {
-    const response = await fetch(url);
-    const blob = await response.blob();
-    const objectUrl = URL.createObjectURL(blob);
-    
     const a = document.createElement('a');
-    a.href = objectUrl;
-    a.download = filename;
+    a.href = url;
+    a.download = filename; // ここで直接ファイル名を指定
     document.body.appendChild(a);
     a.click();
     
     // Clean up
     document.body.removeChild(a);
-    URL.revokeObjectURL(objectUrl);
+    URL.revokeObjectURL(url);
   } catch (error) {
     console.error('Error downloading file:', error);
     throw error;

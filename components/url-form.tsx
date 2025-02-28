@@ -30,7 +30,7 @@ export function UrlForm() {
     }
 
     setIsLoading(true);
-    router.push(`/preview?url=${encodeURIComponent(url)}`);
+    router.push(`/preview?id=${contentId}`);
   };
 
   return (

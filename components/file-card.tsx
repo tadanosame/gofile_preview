@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Download, File, FileText, Image, Music, Video, Archive } from "lucide-react";
+import { Download, File, FileText, Image, Music, Video, Archive, Play, AlertCircle, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { FileWithPreview } from "@/lib/types";
 import { formatFileSize, downloadFile } from "@/lib/api";
 
@@ -14,6 +15,10 @@ interface FileCardProps {
 
 export function FileCard({ file }: FileCardProps) {
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [showDialog, setShowDialog] = useState(false);
 
   const handleDownload = async () => {
     try {
@@ -24,6 +29,32 @@ export function FileCard({ file }: FileCardProps) {
     } finally {
       setIsDownloading(false);
     }
+  };
+
+  const handlePlay = () => {
+    setShowDialog(true);
+    setIsPlaying(true);
+    setIsLoading(true);
+    setLoadError(null);
+  };
+
+  const handleCloseDialog = () => {
+    setShowDialog(false);
+    setIsPlaying(false);
+    setIsLoading(false);
+    setLoadError(null);
+  };
+
+  const handleMediaError = (e: React.SyntheticEvent<HTMLVideoElement | HTMLAudioElement, Event>) => {
+    console.error("Media loading error:", e);
+    setLoadError("メディアの読み込みに失敗しました。");
+    setIsLoading(false);
+  };
+
+  const handleMediaLoaded = () => {
+    console.log("Media loaded successfully");
+    setIsLoading(false);
+    setLoadError(null);
   };
 
   const getFileIcon = () => {
@@ -43,13 +74,72 @@ export function FileCard({ file }: FileCardProps) {
     }
   };
 
+  const renderMediaPlayer = () => {
+    const mimetype = file.mimetype.toLowerCase();
+    if (mimetype.startsWith("video/")) {
+      return (
+        <div className="relative w-full h-full">
+          <video 
+            controls 
+            className={`w-full h-full object-contain ${isLoading ? 'invisible' : 'visible'}`}
+            onError={handleMediaError}
+            onLoadedData={handleMediaLoaded}
+            onCanPlay={handleMediaLoaded}
+            autoPlay
+          >
+            <source src={'https://gofile-proxy.tadasame.workers.dev/?url='+file.link} type="video/mp4" />
+            Your browser does not support the video tag.
+          </video>
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-muted/50">
+              <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+          )}
+          {loadError && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-muted/50 p-4 text-center">
+              <AlertCircle className="h-8 w-8 text-destructive" />
+              <p className="text-sm text-destructive">{loadError}</p>
+            </div>
+          )}
+        </div>
+      );
+    } else if (mimetype.startsWith("audio/")) {
+      return (
+        <div className="relative w-full h-full flex items-center justify-center">
+          <audio 
+            controls 
+            className={`w-full ${isLoading ? 'invisible' : 'visible'}`}
+            onError={handleMediaError}
+            onLoadedData={handleMediaLoaded}
+            onCanPlay={handleMediaLoaded}
+            autoPlay
+          >
+            <source src={'https://gofile-proxy.tadasame.workers.dev/?url='+file.link} type="audio/mpeg" />
+            Your browser does not support the audio tag.
+          </audio>
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-muted/50">
+              <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+          )}
+          {loadError && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-muted/50 p-4 text-center">
+              <AlertCircle className="h-8 w-8 text-destructive" />
+              <p className="text-sm text-destructive">{loadError}</p>
+            </div>
+          )}
+        </div>
+      );
+    }
+  };
+
   const renderPreview = () => {
     const mimetype = file.mimetype.toLowerCase();
     if (mimetype.startsWith("image/")) {
       return (
         <div className="relative h-32 w-full overflow-hidden rounded-t-lg">
           <img
-            src={file.previewUrl || file.link}
+            src={file.thumbnail || file.link}
             alt={file.name}
             className="h-full w-full object-cover"
             onError={(e) => {
@@ -61,7 +151,22 @@ export function FileCard({ file }: FileCardProps) {
     } else if (mimetype.startsWith("video/")) {
       return (
         <div className="relative flex h-32 w-full items-center justify-center overflow-hidden rounded-t-lg bg-muted">
-          <Video className="h-12 w-12 text-muted-foreground" />
+          <div className="flex flex-col items-center justify-center">
+            <Video className="h-12 w-12 text-muted-foreground" />
+            {file.thumbnail && (
+              <img
+                src={file.thumbnail}
+                alt="Video thumbnail"
+                className="absolute h-full w-full object-cover opacity-50"
+              />
+            )}
+          </div>
+        </div>
+      );
+    } else if (mimetype.startsWith("audio/")) {
+      return (
+        <div className="relative flex h-32 w-full items-center justify-center overflow-hidden rounded-t-lg bg-muted">
+          <Music className="h-12 w-12 text-muted-foreground" />
         </div>
       );
     } else {
@@ -73,32 +178,60 @@ export function FileCard({ file }: FileCardProps) {
     }
   };
 
+  const canPlay = file.mimetype.toLowerCase().startsWith("video/") || file.mimetype.toLowerCase().startsWith("audio/");
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      transition={{ duration: 0.3 }}
-      className="h-full"
-    >
-      <Card className="h-full overflow-hidden">
-        {renderPreview()}
-        <CardContent className="p-4">
-          <h3 className="mb-1 line-clamp-1 font-medium">{file.name}</h3>
-          <p className="text-sm text-muted-foreground">{formatFileSize(file.size)}</p>
-        </CardContent>
-        <CardFooter className="p-4 pt-0">
-          <Button 
-            onClick={handleDownload} 
-            disabled={isDownloading} 
-            className="w-full"
-            variant="default"
-          >
-            {isDownloading ? "Downloading..." : "Download"}
-            {!isDownloading && <Download className="ml-2 h-4 w-4" />}
-          </Button>
-        </CardFooter>
-      </Card>
-    </motion.div>
+    <>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+        transition={{ duration: 0.3 }}
+        className="h-full"
+      >
+        <Card className="h-full overflow-hidden">
+          {renderPreview()}
+          <CardContent className="p-4">
+            <h3 className="mb-1 line-clamp-1 font-medium">{file.name}</h3>
+            <p className="text-sm text-muted-foreground">{formatFileSize(file.size)}</p>
+          </CardContent>
+          <CardFooter className="flex gap-2 p-4 pt-0">
+            {canPlay && (
+              <Button
+                onClick={handlePlay}
+                variant="secondary"
+                className="flex-1"
+              >
+                Play
+                <Play className="ml-2 h-4 w-4" />
+              </Button>
+            )}
+            <Button 
+              onClick={handleDownload} 
+              disabled={isDownloading} 
+              className={canPlay ? "flex-1" : "w-full"}
+              variant="default"
+            >
+              {isDownloading ? "Downloading..." : "Download"}
+              {!isDownloading && <Download className="ml-2 h-4 w-4" />}
+            </Button>
+          </CardFooter>
+        </Card>
+      </motion.div>
+
+      <Dialog open={showDialog} onOpenChange={handleCloseDialog}>
+        <DialogContent className="max-w-[90vw] max-h-[90vh] p-6">
+          <DialogHeader>
+            <DialogTitle className="pr-8">{file.name}</DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              {file.mimetype.startsWith("video/") ? "ビデオプレイヤー" : "オーディオプレイヤー"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="relative w-full h-[calc(90vh-8rem)] overflow-hidden">
+            {renderMediaPlayer()}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

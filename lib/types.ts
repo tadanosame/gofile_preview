@@ -3,11 +3,12 @@ export interface GofileResponse {
   data: {
     isOwner: boolean;
     isPassword: boolean;
-    contents: Record<string, GofileContent>;
+    children: Record<string, GofileContent>; // `contents` ではなく `children`
     password?: string;
     token?: string;
   };
 }
+
 
 export interface GofileContent {
   id: string;
@@ -15,9 +16,12 @@ export interface GofileContent {
   type: string;
   size: number;
   link: string;
+  thumbnail: string;
   createTime: number;
   mimetype: string;
+  children?: Record<string, GofileContent>; // ここを修正
 }
+
 
 export interface FileWithPreview extends GofileContent {
   previewUrl: string;

@@ -14,7 +14,7 @@ import { FileWithPreview, GofileContent } from "@/lib/types";
 export default function PreviewPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const url = searchParams.get("url") || "";
+  const id = searchParams?.get("id") || "";
   
   const [files, setFiles] = useState<FileWithPreview[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -23,7 +23,7 @@ export default function PreviewPage() {
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
 
   useEffect(() => {
-    if (!url) {
+    if (!id) {
       router.push("/");
       return;
     }
@@ -33,13 +33,7 @@ export default function PreviewPage() {
         setIsLoading(true);
         setError("");
 
-        const contentId = extractContentId(url);
-        if (!contentId) {
-          setError("Invalid Gofile URL");
-          return;
-        }
-
-        const response = await fetchGofileData(url, password);
+        const response = await fetchGofileData(id, password);
         
         if (response.status !== "ok") {
           setError("Failed to fetch data from Gofile");
@@ -52,9 +46,9 @@ export default function PreviewPage() {
           return;
         }
 
-        const fileList: FileWithPreview[] = Object.values(response.data.contents).map((content: GofileContent) => ({
-          ...content,
-          previewUrl: content.mimetype.startsWith("image/") ? content.link : ""
+        const fileList: FileWithPreview[] = Object.values(response.data.children).map((children: GofileContent) => ({
+          ...children,
+          previewUrl: children.mimetype.startsWith("image/") ? children.link : ""
         }));
 
         setFiles(fileList);
@@ -67,16 +61,16 @@ export default function PreviewPage() {
     };
 
     fetchData();
-  }, [url, router]);
+  }, [id, router]);
 
   const handlePasswordSubmit = (password: string) => {
     setIsPasswordDialogOpen(false);
-    fetchGofileData(url, password)
+    fetchGofileData(id, password)
       .then(response => {
         if (response.status === "ok") {
-          const fileList: FileWithPreview[] = Object.values(response.data.contents).map((content: GofileContent) => ({
-            ...content,
-            previewUrl: content.mimetype.startsWith("image/") ? content.link : ""
+          const fileList: FileWithPreview[] = Object.values(response.data.children).map((children: GofileContent) => ({
+            ...children,
+            previewUrl: children.mimetype.startsWith("image/") ? children.link : ""
           }));
           setFiles(fileList);
           setIsPasswordProtected(false);
