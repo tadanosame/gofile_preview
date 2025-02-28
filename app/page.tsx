@@ -21,7 +21,10 @@ export default function Home() {
               Download files from Gofile
             </h1>
             <p className="max-w-[46rem] text-muted-foreground sm:text-xl">
-              Enter a Gofile URL to preview and download files. No registration required.
+              GofileのURLを入力してファイルをプレビューまたはダウンロード。登録不要です。
+            </p>
+            <p className="text-sm text-yellow-600 dark:text-yellow-500 mt-2">
+              ※ Chromeをご利用の方は、ポップアップとリダイレクトの許可をお願いします。
             </p>
           </div>
           <div className="mx-auto mt-12 max-w-lg">

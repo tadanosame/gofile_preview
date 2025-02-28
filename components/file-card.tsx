@@ -2,18 +2,21 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Download, File, FileText, Image, Music, Video, Archive, Play, AlertCircle, Loader2, X } from "lucide-react";
+import { Download, File, FileText, Image, Music, Video, Archive, Play, AlertCircle, Loader2, X, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { FileWithPreview } from "@/lib/types";
 import { formatFileSize, downloadFile } from "@/lib/api";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface FileCardProps {
   file: FileWithPreview;
+  isSelected?: boolean;
+  onToggleSelect?: () => void;
 }
 
-export function FileCard({ file }: FileCardProps) {
+export function FileCard({ file, isSelected = false, onToggleSelect }: FileCardProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -32,10 +35,15 @@ export function FileCard({ file }: FileCardProps) {
   };
 
   const handlePlay = () => {
-    setShowDialog(true);
-    setIsPlaying(true);
-    setIsLoading(true);
-    setLoadError(null);
+    // 動画や音声の場合は新しいタブで開く
+    window.open(file.link, '_blank');
+  };
+
+  const handlePreviewImage = () => {
+    // 画像の場合は新しいタブで開く
+    if (file.mimetype.startsWith("image/")) {
+      window.open(file.link, '_blank');
+    }
   };
 
   const handleCloseDialog = () => {
@@ -138,19 +146,44 @@ export function FileCard({ file }: FileCardProps) {
     if (mimetype.startsWith("image/")) {
       return (
         <div className="relative h-32 w-full overflow-hidden rounded-t-lg">
-          <img
-            src={file.thumbnail || file.link}
-            alt={file.name}
-            className="h-full w-full object-cover"
-            onError={(e) => {
-              e.currentTarget.src = "https://placehold.co/600x400?text=No+Preview";
+          <div className="absolute top-2 left-2 z-10">
+            <Checkbox
+              checked={isSelected}
+              onCheckedChange={onToggleSelect}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+          <div 
+            className="relative h-full w-full cursor-pointer group"
+            onClick={(e) => {
+              e.stopPropagation();
+              handlePreviewImage();
             }}
-          />
+          >
+            <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity">
+              <ExternalLink className="h-6 w-6 text-white" />
+            </div>
+            <img
+              src={file.thumbnail || file.link}
+              alt={file.name}
+              className="h-full w-full object-cover"
+              onError={(e) => {
+                e.currentTarget.src = "https://placehold.co/600x400?text=No+Preview";
+              }}
+            />
+          </div>
         </div>
       );
     } else if (mimetype.startsWith("video/")) {
       return (
         <div className="relative flex h-32 w-full items-center justify-center overflow-hidden rounded-t-lg bg-muted">
+          <div className="absolute top-2 left-2 z-10">
+            <Checkbox
+              checked={isSelected}
+              onCheckedChange={onToggleSelect}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
           <div className="flex flex-col items-center justify-center">
             <Video className="h-12 w-12 text-muted-foreground" />
             {file.thumbnail && (
@@ -166,12 +199,26 @@ export function FileCard({ file }: FileCardProps) {
     } else if (mimetype.startsWith("audio/")) {
       return (
         <div className="relative flex h-32 w-full items-center justify-center overflow-hidden rounded-t-lg bg-muted">
+          <div className="absolute top-2 left-2 z-10">
+            <Checkbox
+              checked={isSelected}
+              onCheckedChange={onToggleSelect}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
           <Music className="h-12 w-12 text-muted-foreground" />
         </div>
       );
     } else {
       return (
-        <div className="flex h-32 w-full items-center justify-center rounded-t-lg bg-muted">
+        <div className="relative flex h-32 w-full items-center justify-center rounded-t-lg bg-muted">
+          <div className="absolute top-2 left-2 z-10">
+            <Checkbox
+              checked={isSelected}
+              onCheckedChange={onToggleSelect}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
           {getFileIcon()}
         </div>
       );
@@ -189,21 +236,26 @@ export function FileCard({ file }: FileCardProps) {
         transition={{ duration: 0.3 }}
         className="h-full"
       >
-        <Card className="h-full overflow-hidden">
-          {renderPreview()}
+        <Card 
+          className={`h-full overflow-hidden cursor-pointer transition-colors hover:bg-accent/5 ${isSelected ? 'ring-2 ring-primary' : ''}`}
+          onClick={onToggleSelect}
+        >
+          <div className="relative">
+            {renderPreview()}
+          </div>
           <CardContent className="p-4">
             <h3 className="mb-1 line-clamp-1 font-medium">{file.name}</h3>
             <p className="text-sm text-muted-foreground">{formatFileSize(file.size)}</p>
           </CardContent>
-          <CardFooter className="flex gap-2 p-4 pt-0">
+          <CardFooter className="flex gap-2 p-4 pt-0" onClick={(e) => e.stopPropagation()}>
             {canPlay && (
               <Button
                 onClick={handlePlay}
                 variant="secondary"
                 className="flex-1"
               >
-                Play
-                <Play className="ml-2 h-4 w-4" />
+                開く
+                <ExternalLink className="ml-2 h-4 w-4" />
               </Button>
             )}
             <Button 
@@ -212,8 +264,8 @@ export function FileCard({ file }: FileCardProps) {
               className={canPlay ? "flex-1" : "w-full"}
               variant="default"
             >
-              {isDownloading ? "Downloading..." : "Download"}
-              {!isDownloading && <Download className="ml-2 h-4 w-4" />}
+              {isDownloading ? "開いています..." : "開く"}
+              {!isDownloading && <ExternalLink className="ml-2 h-4 w-4" />}
             </Button>
           </CardFooter>
         </Card>

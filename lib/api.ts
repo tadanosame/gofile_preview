@@ -96,15 +96,8 @@ export function formatFileSize(bytes: number): string {
 
 export async function downloadFile(url: string, filename: string): Promise<void> {
   try {
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename; // ここで直接ファイル名を指定
-    document.body.appendChild(a);
-    a.click();
-    
-    // Clean up
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    // 新しいタブで開く
+    window.open(url, '_blank');
   } catch (error) {
     console.error('Error downloading file:', error);
     throw error;

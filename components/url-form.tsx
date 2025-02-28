@@ -19,13 +19,13 @@ export function UrlForm() {
     setError("");
 
     if (!url.trim()) {
-      setError("Please enter a Gofile URL");
+      setError("GofileのURLを入力してください");
       return;
     }
 
     const contentId = extractContentId(url);
     if (!contentId) {
-      setError("Invalid Gofile URL format");
+      setError("無効なGofile URLの形式です");
       return;
     }
 
@@ -43,7 +43,7 @@ export function UrlForm() {
         <div className="flex flex-col space-y-2">
           <Input
             type="text"
-            placeholder="Enter Gofile URL (e.g., https://gofile.io/d/abc123)"
+            placeholder="Gofile URLを入力 (例: https://gofile.io/d/abc123)"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             className="w-full"
@@ -51,7 +51,7 @@ export function UrlForm() {
           {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
         <Button type="submit" disabled={isLoading} className="w-full">
-          {isLoading ? "Loading..." : "Preview Files"}
+          {isLoading ? "読み込み中..." : "ファイルを表示"}
           {!isLoading && <ArrowRight className="ml-2 h-4 w-4" />}
         </Button>
       </form>
